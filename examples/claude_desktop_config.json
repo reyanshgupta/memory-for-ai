@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "uv",
+      "args": ["run", "memory-server"],
+      "cwd": "path/to/memory-for-ai",
+      "env": {
+        "MEMORY_SERVER_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

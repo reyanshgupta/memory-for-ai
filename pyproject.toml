@@ -1,0 +1,47 @@
+[project]
+name = "memory-for-ai"
+version = "0.1.0"
+description = "Local MCP-compatible server providing centralized memory storage for AI agents with semantic search capabilities"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Memory Server Contributors"}
+]
+keywords = ["ai", "memory", "mcp", "claude", "vector-database", "embeddings"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.0.15",
+    "fastapi[standard]>=0.116.1",
+    "mcp[cli]>=1.12.3",
+    "sentence-transformers>=5.0.0",
+    "pydantic-settings>=2.5.2",
+    "mcp-server>=0.1.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/memory-for-ai"
+Repository = "https://github.com/your-username/memory-for-ai"
+Issues = "https://github.com/your-username/memory-for-ai/issues"
+Documentation = "https://github.com/your-username/memory-for-ai/wiki"
+
+[project.scripts]
+memory-server = "app.main:main"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
