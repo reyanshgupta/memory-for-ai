@@ -18,10 +18,12 @@ from .search.embeddings import EmbeddingService
 # Global app context for accessing services
 _app_context: Optional['AppContext'] = None
 
-# Configure logging
+# Configure logging to stderr only (not stdout, which interferes with MCP stdio)
+import sys
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stderr
 )
 logger = logging.getLogger(__name__)
 
@@ -334,26 +336,24 @@ async def delete_memory(
 
 def main():
     """Main entry point for the memory server."""
-    print("🧠 Starting Memory Server...")
-    print("📋 Server Information:")
-    print("   - Name: Memory Server")
-    print("   - Version: 0.1.0")
-    print("   - Protocol: MCP (Model Context Protocol)")
-    print("   - Transport: stdio (Claude Desktop compatible)")
-    print("")
-    print("🔧 Available Tools:")
-    print("   - health_check - Check server status")
-    print("   - add_memory - Store new memory with embedding")
-    print("   - search_memories - Semantic search across memories")
-    print("   - get_memory - Retrieve specific memory by ID")
-    print("   - delete_memory - Remove memory from storage")
-    print("")
-    print("📚 Storage Backend:")
-    print("   - Vector Store: ChromaDB (semantic search)")
-    print("   - Embeddings: sentence-transformers (all-MiniLM-L6-v2)")
-    print("   - Data Location: .memory-server/")
-    print("")
-    print("✅ Memory Server ready for MCP connections!")
+    # Log startup info to stderr (stdout is reserved for MCP JSON-RPC)
+    logger.info("🧠 Starting Memory Server...")
+    logger.info("📋 Server Information:")
+    logger.info("   - Name: Memory Server")
+    logger.info("   - Version: 0.1.0")
+    logger.info("   - Protocol: MCP (Model Context Protocol)")
+    logger.info("   - Transport: stdio (Claude Desktop compatible)")
+    logger.info("🔧 Available Tools:")
+    logger.info("   - health_check - Check server status")
+    logger.info("   - add_memory - Store new memory with embedding")
+    logger.info("   - search_memories - Semantic search across memories")
+    logger.info("   - get_memory - Retrieve specific memory by ID")
+    logger.info("   - delete_memory - Remove memory from storage")
+    logger.info("📚 Storage Backend:")
+    logger.info("   - Vector Store: ChromaDB (semantic search)")
+    logger.info("   - Embeddings: sentence-transformers (all-MiniLM-L6-v2)")
+    logger.info("   - Data Location: .memory-server/")
+    logger.info("✅ Memory Server ready for MCP connections!")
     
     # Run the server
     mcp.run()
