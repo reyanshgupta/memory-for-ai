@@ -73,7 +73,7 @@ Add this configuration to your Claude Desktop config file:
 
 **Location**: 
 - macOS: `~/Library/Application Support/Claude/config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Windows: `%APPDATA%\Roaming\Claude\claude_desktop_config.json`
 
 **Configuration**:
 ```json
