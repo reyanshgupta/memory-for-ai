@@ -14,6 +14,7 @@ from .models.config import ServerConfig
 from .models.memory import Memory, MemoryType, MemorySource
 from .storage.vector_store import VectorStore
 from .search.embeddings import EmbeddingService
+from .services.memory_cleanup import MemoryCleanupService
 
 # Global app context for accessing services
 _app_context: Optional['AppContext'] = None
@@ -30,11 +31,12 @@ logger = logging.getLogger(__name__)
 
 class AppContext:
     """Application context with initialized services."""
-    
+
     def __init__(self, config: ServerConfig, vector_store: VectorStore, embedding_service: EmbeddingService):
         self.config = config
         self.vector_store = vector_store
         self.embedding_service = embedding_service
+        self.cleanup_service = MemoryCleanupService(vector_store)
 
 
 @asynccontextmanager
@@ -334,6 +336,141 @@ async def delete_memory(
         }
 
 
+@mcp.tool()
+async def analyze_memory_cleanup(
+    similarity_threshold: float = 0.85,
+    consolidation_threshold: float = 0.70
+) -> Dict[str, Any]:
+    """Analyze memories for duplicate detection and consolidation opportunities.
+
+    This tool identifies exact duplicates, near-duplicates, and memories that can be
+    consolidated, but does not make any changes. Use this to preview cleanup actions.
+
+    Args:
+        similarity_threshold: Threshold for duplicate detection (0.95 = very similar, 0.8 = somewhat similar)
+        consolidation_threshold: Threshold for consolidation (0.85 = can be merged, 0.7 = loosely related)
+
+    Returns:
+        Analysis results showing duplicate and consolidation opportunities for user review
+    """
+    if _app_context is None:
+        return {
+            "error": "Server not initialized",
+            "status": "failed"
+        }
+
+    logger.info(f"Analyzing memories for cleanup - similarity:{similarity_threshold}, consolidation:{consolidation_threshold}")
+
+    try:
+        analysis = await _app_context.cleanup_service.analyze_memories_for_cleanup(
+            similarity_threshold=similarity_threshold,
+            consolidation_threshold=consolidation_threshold
+        )
+
+        logger.info(f"Cleanup analysis complete - found {analysis['estimated_cleanup']['memories_to_delete']} memories to potentially delete")
+
+        return {
+            "status": "analysis_complete",
+            "analysis": analysis,
+            "next_steps": "Review the proposed actions and use execute_memory_cleanup to apply specific cleanup operations.",
+            "available_actions": [
+                "exact_duplicates",
+                "near_duplicates",
+                "consolidation"
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Memory cleanup analysis failed: {e}")
+        return {
+            "error": f"Analysis failed: {str(e)}",
+            "status": "failed"
+        }
+
+
+@mcp.tool()
+async def execute_memory_cleanup(
+    actions_to_execute: List[str],
+    analysis_id: Optional[str] = None,
+    confirm_deletion: bool = False
+) -> Dict[str, Any]:
+    """Execute approved memory cleanup actions for duplicates and consolidation.
+
+    IMPORTANT: This tool will permanently delete or modify memories. Always run analyze_memory_cleanup
+    first to review what will be changed, then call this tool with confirm_deletion=True to proceed.
+
+    Args:
+        actions_to_execute: List of cleanup actions to perform:
+                           - "exact_duplicates": Remove memories with identical content
+                           - "near_duplicates": Remove memories with very similar content
+                           - "consolidation": Merge related memories into single entries
+        analysis_id: Optional reference to previous analysis (for audit trail)
+        confirm_deletion: Must be True to confirm you want to permanently delete/modify memories
+
+    Returns:
+        Results of cleanup execution with counts of deleted/consolidated memories
+    """
+    if _app_context is None:
+        return {
+            "error": "Server not initialized",
+            "status": "failed"
+        }
+
+    if not confirm_deletion:
+        return {
+            "error": "Cleanup not executed - must set confirm_deletion=True to proceed with permanent changes",
+            "status": "confirmation_required",
+            "warning": "This operation will permanently delete duplicates or consolidate memories in your database"
+        }
+
+    if not actions_to_execute:
+        return {
+            "error": "No actions specified to execute",
+            "status": "failed"
+        }
+
+    # Validate action types
+    valid_actions = ["exact_duplicates", "near_duplicates", "consolidation"]
+    invalid_actions = [action for action in actions_to_execute if action not in valid_actions]
+    if invalid_actions:
+        return {
+            "error": f"Invalid actions: {invalid_actions}. Valid actions are: {valid_actions}",
+            "status": "failed"
+        }
+
+    logger.info(f"Executing memory cleanup with actions: {actions_to_execute}")
+
+    try:
+        # First run analysis to get current state
+        analysis = await _app_context.cleanup_service.analyze_memories_for_cleanup()
+
+        # Execute the requested cleanup actions
+        results = await _app_context.cleanup_service.execute_cleanup(
+            analysis_result=analysis,
+            actions_to_execute=actions_to_execute
+        )
+
+        # Get final memory count
+        final_count = await _app_context.vector_store.count_memories()
+
+        logger.info(f"Memory cleanup completed - final memory count: {final_count}")
+
+        return {
+            "status": "cleanup_completed",
+            "execution_results": results,
+            "final_memory_count": final_count,
+            "analysis_reference": analysis_id,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Memory cleanup execution failed: {e}")
+        return {
+            "error": f"Cleanup execution failed: {str(e)}",
+            "status": "failed"
+        }
+
+
 def main():
     """Main entry point for the memory server."""
     # Log startup info to stderr (stdout is reserved for MCP JSON-RPC)
@@ -349,6 +486,8 @@ def main():
     logger.info("   - search_memories - Semantic search across memories")
     logger.info("   - get_memory - Retrieve specific memory by ID")
     logger.info("   - delete_memory - Remove memory from storage")
+    logger.info("   - analyze_memory_cleanup - Analyze memories for cleanup opportunities")
+    logger.info("   - execute_memory_cleanup - Execute cleanup actions with confirmation")
     logger.info("📚 Storage Backend:")
     logger.info("   - Vector Store: ChromaDB (semantic search)")
     logger.info("   - Embeddings: sentence-transformers (all-MiniLM-L6-v2)")

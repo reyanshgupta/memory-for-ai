@@ -744,6 +744,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "mcp", extra = ["cli"] },
     { name = "mcp-server" },
+    { name = "numpy" },
     { name = "pydantic-settings" },
     { name = "sentence-transformers" },
 ]
@@ -754,6 +755,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.12.3" },
     { name = "mcp-server", specifier = ">=0.1.4" },
+    { name = "numpy", specifier = ">=1.24.0" },
     { name = "pydantic-settings", specifier = ">=2.5.2" },
     { name = "sentence-transformers", specifier = ">=5.0.0" },
 ]

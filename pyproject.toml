@@ -25,6 +25,7 @@ dependencies = [
     "sentence-transformers>=5.0.0",
     "pydantic-settings>=2.5.2",
     "mcp-server>=0.1.4",
+    "numpy>=1.24.0",
 ]
 
 [project.urls]
