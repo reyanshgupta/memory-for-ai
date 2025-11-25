@@ -40,6 +40,26 @@ uv sync
 uv run memory-server
 ```
 
+### Automated Setup Scripts
+
+For quick setup with Claude Desktop or Claude Code, use the provided setup scripts:
+
+**Claude Desktop (macOS):**
+```bash
+./setup/claude-desktop/setup-mcp-macos.sh
+```
+
+**Claude Code (macOS):**
+```bash
+./setup/claude-code/setup-mcp-macos.sh
+```
+
+These scripts will:
+- Detect your UV installation
+- Install dependencies automatically
+- Create or update the appropriate config file
+- Back up any existing configuration
+
 ## 🎯 Quick Start
 
 ### 1. Start the Memory Server
